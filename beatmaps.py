@@ -1,5 +1,7 @@
 import requests
 from operator import itemgetter
+
+from Beatmap import Beatmap
 from config import Config
 
 
@@ -47,14 +49,11 @@ if __name__ == "__main__":
             for score in scores:
                 beatmapset_id = score['beatmap']['beatmapset_id']
                 if beatmapset_id in beatmaps:
-                    beatmaps[beatmapset_id]['count'] += 1
+                    beatmaps[beatmapset_id].count += 1
                 else:
-                    beatmaps[beatmapset_id] = {
-                        'count': 1,
-                        'title': score['beatmapset']['title'],
-                        'total_length': get_time(score['beatmap']['total_length']),
-                        'url': 'https://osu.ppy.sh/beatmapsets/' + str(beatmapset_id)
-                    }
+                    beatmaps[beatmapset_id] = Beatmap(count=1, title=score['beatmapset']['title'],
+                                                      length=get_time(score['beatmap']['total_length']),
+                                                      url='https://osu.ppy.sh/beatmapsets/' + str(beatmapset_id))
 
-    for beatmap in sorted(beatmaps.values(), key=itemgetter('count'), reverse=True)[:100]:
-        print(str(beatmap['count']), beatmap['title'], beatmap['total_length'], beatmap['url'], sep=' - ')
+    for beatmap in sorted(beatmaps.values(), key=lambda bm : bm.count, reverse=True)[:100]:
+        print(beatmap)
