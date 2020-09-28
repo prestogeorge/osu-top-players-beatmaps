@@ -1,9 +1,8 @@
+import os
 import requests
-from operator import itemgetter
 
 from Beatmap import Beatmap
 from config import Config
-
 
 if __name__ == "__main__":
     BASE_URL = 'https://osu.ppy.sh'
@@ -11,9 +10,18 @@ if __name__ == "__main__":
 
     MAX_USERS = 50
     MAX_SCORES = 50
-    NUM_USERS = 5
+
+    NUM_USERS = 100
+    MIN_COUNT = 10
 
     config = Config()
+
+    user_songs = {}
+    songs = os.listdir(config.songs_path)
+    for song in songs:
+        id, artist_and_title = song.split(' ', 1)
+        user_songs[id] = artist_and_title
+
     payload = {
         'client_id': config.client_id,
         'client_secret': config.client_secret,
@@ -47,13 +55,28 @@ if __name__ == "__main__":
             r = requests.get(API_URL + '/users/' + str(user) + '/scores/best?limit=50&offset=' + str(i * MAX_SCORES), headers=headers)
             scores = r.json()
             for score in scores:
-                beatmapset_id = score['beatmap']['beatmapset_id']
+                beatmapset_id = str(score['beatmap']['beatmapset_id'])
                 if beatmapset_id in beatmaps:
                     beatmaps[beatmapset_id].count += 1
                 else:
-                    beatmaps[beatmapset_id] = Beatmap(count=1, title=score['beatmapset']['title'],
-                                                      length=get_time(score['beatmap']['total_length']),
-                                                      url='https://osu.ppy.sh/beatmapsets/' + str(beatmapset_id))
+                    beatmaps[beatmapset_id] = Beatmap(
+                        count=1, 
+                        title=score['beatmapset']['title'],
+                        length=get_time(score['beatmap']['total_length']),
+                        url='https://osu.ppy.sh/beatmapsets/' + beatmapset_id
+                    )
 
-    for beatmap in sorted(beatmaps.values(), key=lambda bm : bm.count, reverse=True)[:100]:
+    beatmaps = { k: v for (k, v) in beatmaps.items() if v.count >= MIN_COUNT }
+
+    print('songs not in best performances list:')
+    for (k, v) in user_songs.items():
+        if k in beatmaps:
+            continue
+        print(v)
+
+    beatmaps = { k: v for (k, v) in beatmaps.items() if k not in user_songs }
+
+    print('\nsongs from best performances:')
+
+    for beatmap in sorted(beatmaps.values(), key=lambda bm: bm.count, reverse=True):
         print(beatmap)
